@@ -70,7 +70,7 @@ def letterbox(
     else:
         # Colored (BGR/BGRA)
         channels = frame.shape[2]
-        if isinstance(color, int):
+        if not hasattr(color, "__len__"):
             color = (color,) * channels
         elif len(color) != channels:
             raise ValueError(f"color length ({len(color)}) must match frame channels ({channels}).")

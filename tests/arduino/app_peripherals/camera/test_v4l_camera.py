@@ -76,7 +76,7 @@ class TestV4LCameraInitialization:
         with pytest.raises(CameraOpenError, match="Unrecognized device identifier"):
             V4LCamera(device="invalid")
 
-        with pytest.raises(CameraOpenError, match="out of range"):
+        with pytest.raises(CameraOpenError, match="No stable link found"):
             V4LCamera(device=1)
 
 

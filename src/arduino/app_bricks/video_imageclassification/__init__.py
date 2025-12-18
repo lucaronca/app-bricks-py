@@ -10,14 +10,13 @@ import socket
 import numpy as np
 from typing import Callable
 
-from websockets.sync.client import connect
-from websockets.sync.connection import Connection
+from websockets.sync.client import connect, ClientConnection
 from websockets.exceptions import ConnectionClosedOK, ConnectionClosedError
 
-from arduino.app_peripherals.camera import Camera, BaseCamera, WebSocketCamera
+from arduino.app_peripherals.camera import Camera, BaseCamera
 from arduino.app_internal.core import load_brick_compose_file, resolve_address
 from arduino.app_internal.core import EdgeImpulseRunnerFacade
-from arduino.app_utils.image.adjustments import compress_to_jpeg
+from arduino.app_utils.image import compress_to_jpeg
 from arduino.app_utils import brick, Logger
 
 logger = Logger("VideoImageClassification")
@@ -32,7 +31,7 @@ class VideoImageClassification:
 
     ALL_HANDLERS_KEY = "__ALL"
 
-    def __init__(self, camera: BaseCamera | None = None, confidence: float = 0.3, debounce_sec: float = 0.0):
+    def __init__(self, camera: BaseCamera = None, confidence: float = 0.3, debounce_sec: float = 0.0):
         """Initialize the VideoImageClassification class.
 
         Args:
@@ -170,6 +169,47 @@ class VideoImageClassification:
                 continue
             except Exception as e:
                 logger.exception(f"Failed to establish WebSocket connection to {self._host}: {e}")
+                time.sleep(2)
+
+    @brick.execute
+    def camera_loop(self):
+        """Camera main loop.
+
+        Captures images from the camera and forwards them over the TCP connection.
+        Retries on connection errors until stopped.
+        """
+        while self._is_running.is_set():
+            try:
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as tcp_socket:
+                    tcp_socket.connect((self._host, 5050))
+                    logger.info(f"TCP connection established to {self._host}:5050")
+
+                    # Send a priming frame to initialize the EI pipeline and its web server
+                    frame = np.zeros((320, 320, 3), dtype=np.uint8)
+                    jpeg_frame = compress_to_jpeg(frame)
+                    tcp_socket.sendall(jpeg_frame.tobytes())
+
+                    while self._is_running.is_set():
+                        try:
+                            frame = self._camera.capture()
+                            if frame is None:
+                                time.sleep(0.01)  # Brief sleep if no image available
+                                continue
+
+                            jpeg_frame = compress_to_jpeg(frame)
+                            tcp_socket.sendall(jpeg_frame.tobytes())
+
+                        except (BrokenPipeError, ConnectionResetError, OSError) as e:
+                            logger.warning(f"TCP connection lost: {e}. Retrying...")
+                            break
+                        except Exception as e:
+                            logger.exception(f"Error capturing/sending image: {e}")
+
+            except (ConnectionRefusedError, OSError) as e:
+                logger.debug(f"TCP connection failed: {e}. Retrying in 2 seconds...")
+                time.sleep(2)
+            except Exception as e:
+                logger.exception(f"Unexpected error in TCP loop: {e}")
                 time.sleep(2)
 
     @brick.execute
