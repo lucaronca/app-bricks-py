@@ -2,18 +2,16 @@
 #
 # SPDX-License-Identifier: MPL-2.0
 
-import asyncio
 import base64
 import os
 import threading
 from typing import Iterator, List, Optional, Union, Any, Callable
 
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import BaseMessage, HumanMessage, ToolMessage, AIMessage, ToolCall
+from langchain_core.messages import BaseMessage, HumanMessage, ToolMessage, ToolCall
 
 from arduino.app_utils import brick
 
-from .utils import logger
 from .models import CloudModel, CloudModelProvider
 from .memory import WindowedChatMessageHistory
 
@@ -44,7 +42,6 @@ class CloudLLM:
         max_tool_loops: int = 8,
         timeout: int = 30,
         tools: List[Callable[..., Any]] = None,
-        callbacks: Any = None,
         **kwargs,
     ):
         """Initializes the CloudLLM brick with the specified provider and configuration.
@@ -65,7 +62,6 @@ class CloudLLM:
                 allowed during a single chat interaction. Defaults to 8.
             timeout (int): The maximum duration in seconds to wait for a response before
                 timing out. Defaults to 30.
-            callbacks (Any): Optional callbacks for monitoring generation events.
             tools (List[Callable[..., Any]]): A list of callable tool functions to register. Defaults to None.
             **kwargs: Additional arguments passed to the model constructor
 
@@ -84,6 +80,15 @@ class CloudLLM:
         self._max_tool_loops = max_tool_loops
         self._timeout = timeout
         self._callbacks = callbacks
+
+        # Registered tools
+        self._tools_map = {}
+        if tools is None:
+            self._tools = []
+        else:
+            self._tools = tools
+            for tool_func in tools:
+                self._tools_map[tool_func.name] = tool_func
 
         # Registered tools
         self._tools_map = {}
@@ -179,12 +184,7 @@ class CloudLLM:
             if tool_name in self._tools_map:
                 logger.debug(f"Invoking tool function for: {tool_name}")
                 tool_func = self._tools_map[tool_name]
-                tool_output = asyncio.run(
-                    tool_func.ainvoke(
-                        tool_args,
-                        config={"callbacks": self._callbacks},
-                    )
-                )
+                tool_output = tool_func.invoke(tool_args)
                 logger.debug(f"Tool '{tool_name}' returned: {tool_output}")
 
                 # Append tool output message to current message scope
@@ -215,21 +215,6 @@ class CloudLLM:
             with open(path, "rb") as f:
                 return base64.b64encode(f.read()).decode()
 
-    def _content_to_text(self, content: Any) -> str:
-        if isinstance(content, str):
-            return content
-
-        if isinstance(content, list):
-            parts: list[str] = []
-            for p in content:
-                if isinstance(p, dict) and p.get("type") == "text":
-                    parts.append(p.get("text", ""))
-                elif isinstance(p, str):
-                    parts.append(p)
-            return "".join(parts)
-
-        return str(content)
-
     def chat(self, message: str, images: List[str | bytes] = None) -> str:
         """Sends a message to the AI and blocks until the complete response is received.
 
@@ -250,29 +235,19 @@ class CloudLLM:
 
         try:
             input_messages = self._get_message_with_history(message, images)
-            loops = 0
+            message = self._model.invoke(input_messages)
+            if message is None:
+                raise RuntimeError("Received empty response from the LLM.")
 
-            while True:
-                message = self._model.invoke(input=input_messages, config={"callbacks": self._callbacks})
-                if message is None:
-                    raise RuntimeError("Received empty response from the LLM.")
-
-                logger.debug(f"Model invoked. Full response: {message}")
-
-                tool_calls = getattr(message, "tool_calls", None) or []
-                if not tool_calls:
-                    break
-
-                loops += 1
-                if loops > self._max_tool_loops:
-                    raise RuntimeError(f"Too many consecutive tool-call loops ({self._max_tool_loops}). Possible tool loop.")
-
-                input_messages.append(message)
-                input_messages = self._process_tool_calls(tool_calls, input_messages.copy())
+            logger.debug(f"Model invoked. Full response: {message}")
+            if message.tool_calls and len(message.tool_calls) > 0:
+                input_messages.append(message)  # Add the previous AI message to scoped history
+                input_messages = self._process_tool_calls(message.tool_calls, input_messages.copy())
+                message = self._model.invoke(input_messages)
 
             # Add the AI message to long term history
             self._history.add_messages([message])
-            return self._content_to_text(message.content)
+            return message.content
 
         except Exception as e:
             raise RuntimeError(f"Response generation failed: {e}")
@@ -303,7 +278,6 @@ class CloudLLM:
             self._keep_streaming.set()
             input_messages = self._get_message_with_history(message, images)
 
-            assistant_chunks: list[str] = []
             tool_calls = []
             for token in self._model.stream(input_messages):
                 if not self._keep_streaming.is_set():
@@ -312,17 +286,16 @@ class CloudLLM:
                     tool_calls.extend(token.tool_calls)
                 else:
                     if token.content:
-                        assistant_chunks.append(token.content)
                         yield token.content
 
             # If there were tool calls, process them
             if len(tool_calls) > 0:
+                # TODO : Handle multiple tool calls and aggregate results properly
                 input_messages = self._process_tool_calls(tool_calls, input_messages.copy())
-                for token in self._model.stream(input=input_messages, config={"callbacks": self._callbacks}):
+                for token in self._model.stream(input_messages):
                     if not self._keep_streaming.is_set():
                         break
                     if token.content:
-                        assistant_chunks.append(token.content)
                         yield token.content
 
         except Exception as e:

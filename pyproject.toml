@@ -85,10 +85,6 @@ cloud_asr = [
     "websocket-client",
     "google-cloud-speech>=2.27.0",
 ]
-cloud_asr = [
-    "websocket-client",
-    "google-cloud-speech>=2.27.0",
-]
 
 all = [
     "arduino_app_bricks[dbstorage_influx]",
