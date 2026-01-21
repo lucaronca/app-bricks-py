@@ -8,7 +8,7 @@ import threading
 from typing import Iterator, List, Optional, Union, Any, Callable
 
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import BaseMessage, HumanMessage, ToolMessage, ToolCall
+from langchain_core.messages import BaseMessage, HumanMessage, ToolMessage, AIMessage, ToolCall
 
 from arduino.app_utils import brick
 
@@ -278,6 +278,7 @@ class CloudLLM:
             self._keep_streaming.set()
             input_messages = self._get_message_with_history(message, images)
 
+            assistant_chunks: list[str] = []
             tool_calls = []
             for token in self._model.stream(input_messages):
                 if not self._keep_streaming.is_set():
@@ -286,16 +287,17 @@ class CloudLLM:
                     tool_calls.extend(token.tool_calls)
                 else:
                     if token.content:
+                        assistant_chunks.append(token.content)
                         yield token.content
 
             # If there were tool calls, process them
             if len(tool_calls) > 0:
-                # TODO : Handle multiple tool calls and aggregate results properly
                 input_messages = self._process_tool_calls(tool_calls, input_messages.copy())
                 for token in self._model.stream(input_messages):
                     if not self._keep_streaming.is_set():
                         break
                     if token.content:
+                        assistant_chunks.append(token.content)
                         yield token.content
 
         except Exception as e:
