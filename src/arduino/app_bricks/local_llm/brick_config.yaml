@@ -1,7 +1,10 @@
 id: arduino:local_llm
 name: Local LLM
 description: "Local LLM Brick enables seamless integration with locally hosted Large Language Models (LLMs) for advanced AI capabilities in your Arduino projects."
+requires_container: true
+requires_model: true
+model: genie:qwen2.5-7b
 variables:
   - name: API_KEY
     description: API Key for the cloud-based LLM service
-    default: "apy_key"
+    default: "api_key"

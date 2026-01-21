@@ -17,8 +17,7 @@ services:
       - GENAI_INTERFACE_FILE=${GENAI_INTERFACE_FILE:-/usr/include/genai_interface.h}
       - GENAI_MODELS_CONFIG_PATH=${GENAI_MODELS_CONFIG_PATH:-/mnt/work/models/models_config.json}
       - ADHOC_MODE=${ADHOC_MODE:-true}
-    mem_limit: 6g
-    memswap_limit: 6g
+    mem_limit: 12g
     oom_kill_disable: false
     shm_size: 2g
     devices:
@@ -32,4 +31,4 @@ services:
       - ${APPLAB_DOWNLOADED_GENIE_MODELS:-/home/ubuntu/models/}:/mnt/work/models/
     command: >
       sh -c "hypercorn openapi_server.main:app --bind 0.0.0.0:${GENAI_PORT:-9001}
-      --reload --access-log - --error-log - --log-level info"
+      --reload --access-log - --error-log - --log-level error"
