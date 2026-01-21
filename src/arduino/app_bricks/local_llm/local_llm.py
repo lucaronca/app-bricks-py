@@ -62,8 +62,8 @@ class LocalLLM(CloudLLM):
             port = 9001
             host = "genie-model-runner"
         elif model.startswith(self.GGUF_MODEL):
-            port = 11434
-            host = "gguf-model-runner"
+            port = 9999
+            host = "llamacpp-model-runner"
         else:
             raise ValueError(f"Unsupported local model type: {model}")
 

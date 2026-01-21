@@ -32,3 +32,20 @@ services:
     command: >
       sh -c "hypercorn openapi_server.main:app --bind 0.0.0.0:${GENAI_PORT:-9001}
       --reload --access-log - --error-log - --log-level error"
+  llamacpp-model-runner:
+    image: ${DOCKER_REGISTRY_BASE:-ghcr.io/arduino/}app-bricks/llamacpp-models-runner:1.1
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+    working_dir: /models     
+    ports:
+      - ${BIND_ADDRESS:-127.0.0.1}:9999:9999
+    mem_limit: 12g
+    oom_kill_disable: false
+    shm_size: 2g
+    volumes:
+      - ${APPLAB_DOWNLOADED_LLAMA_CPP_MODELS:-/home/ubuntu/llamacpp-models/}:/mnt/work/models/
+    command: >
+      /usr/local/bin/llama-server --models-dir /models --models-max 4 --host 0.0.0.0 --port 9999
