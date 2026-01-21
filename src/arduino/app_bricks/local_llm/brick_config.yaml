@@ -5,6 +5,6 @@ requires_container: true
 requires_model: true
 model: genie:qwen2.5-7b
 variables:
-  - name: API_KEY
-    description: API Key for the cloud-based LLM service
+  - name: LOCAL_LLM_API_KEY
+    description: API Key for the local LLM service
     default: "api_key"

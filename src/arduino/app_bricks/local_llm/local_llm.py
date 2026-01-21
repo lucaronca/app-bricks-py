@@ -5,8 +5,10 @@
 from arduino.app_bricks.cloud_llm import CloudLLM, CloudModelProvider
 from arduino.app_bricks.cloud_llm.cloud_llm import DEFAULT_MEMORY
 from arduino.app_utils import Logger, brick
+from arduino.app_internal.core import resolve_address
+
 import os
-from typing import Iterator, List, Optional, Union, Any, Callable
+from typing import Iterator, List, Optional, Any, Callable
 
 logger = Logger("LocalLLM")
 
@@ -25,7 +27,7 @@ class LocalLLM(CloudLLM):
 
     def __init__(
         self,
-        api_key: str = os.getenv("API_KEY", "api_key"),
+        api_key: str = os.getenv("LOCAL_LLM_API_KEY", "api_key"),
         model: str = "genie:qwen2.5-7b",
         system_prompt: str = "",
         temperature: Optional[float] = 0.7,
@@ -37,7 +39,7 @@ class LocalLLM(CloudLLM):
 
         Args:
             api_key (str): The API access key for the target LLM service. Defaults to the
-                'API_KEY' environment variable.
+                'LOCAL_LLM_API_KEY' environment variable.
             model (str): The specific model name or identifier to use (e.g., "genie:qwen2.5-7b").
             system_prompt (str): A system-level instruction that defines the AI's persona
                 and constraints (e.g., "You are a helpful assistant"). Defaults to empty.
@@ -64,6 +66,10 @@ class LocalLLM(CloudLLM):
             host = "gguf-model-runner"
         else:
             raise ValueError(f"Unsupported local model type: {model}")
+
+        host = resolve_address(host)
+        if not host:
+            raise RuntimeError("Host address resolution failed for local LLM runner.")
 
         model = model.split(":", 1)[-1].strip()  # Remove prefix if any
 
