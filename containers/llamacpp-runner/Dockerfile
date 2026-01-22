@@ -1,3 +1,5 @@
+FROM docker.io/ollama/ollama:latest AS ollama
+
 FROM ubuntu:24.04 AS llamacpp-builder
 
 # Install Dependencies
@@ -46,6 +48,9 @@ FROM ubuntu:24.04 AS production
 COPY --from=llamacpp-builder /root/dev/llm/llama.cpp/build/bin /usr/local/bin/
 COPY ./run.sh /
 
+COPY --from=ollama /usr/bin/ollama /usr/bin/ollama
+COPY --from=ollama /usr/lib/ollama/libggml-* /usr/lib/ollama/
+
 RUN set -ex; \
     groupadd -g 44 video || true; \
     groupadd -g 993 render || true; \
@@ -54,8 +59,27 @@ RUN set -ex; \
 
 RUN export DEBIAN_FRONTEND=noninteractive; \
     apt update; \
-    apt install --no-install-recommends -y curl libgomp1; \
+    apt install --no-install-recommends -y curl libgomp1 ca-certificates; \
+    update-ca-certificates; \
     apt autoremove -y; \
     apt dist-clean; \
     chmod +x /usr/local/bin/*; \
+    chmod +x /usr/bin/ollama; \
     chmod +x /run.sh
+
+# Environment variable setup
+
+# Ollama settings
+ENV OLLAMA_HOST=0.0.0.0
+ENV OLLAMA_PORT=11434
+ENV OLLAMA_MODELS=/models
+
+# Llama.cpp server settings
+ENV LLAMA_ARG_HOST=0.0.0.0
+ENV LLAMA_ARG_PORT=9999
+ENV LLAMA_ARG_MODELS_DIR=/models
+ENV LLAMA_ARG_THREADS=4
+ENV LLAMA_ARG_MODELS_MAX=4
+# ENV LLAMA_API_KEY=key
+
+ENTRYPOINT ["./run.sh"]
