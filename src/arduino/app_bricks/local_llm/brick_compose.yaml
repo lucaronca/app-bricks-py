@@ -42,6 +42,7 @@ services:
     working_dir: /models     
     ports:
       - ${BIND_ADDRESS:-127.0.0.1}:9999:9999
+      - ${BIND_ADDRESS:-127.0.0.1}:11434:11434
     mem_limit: 10g
     oom_kill_disable: false
     shm_size: 2g
