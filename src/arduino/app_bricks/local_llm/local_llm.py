@@ -23,7 +23,8 @@ class LocalLLM(CloudLLM):
     """
 
     GENIE_MODEL = "genie"
-    GGUF_MODEL = "gguf"
+    LLAMACPP_MODEL = "llamacpp"
+    OLLAMA_MODEL = "ollama"
 
     def __init__(
         self,
@@ -60,10 +61,13 @@ class LocalLLM(CloudLLM):
 
         if model.startswith(self.GENIE_MODEL):
             port = 9001
-            host = "genie-model-runner"
-        elif model.startswith(self.GGUF_MODEL):
+            host = "genie-models-runner"
+        elif model.startswith(self.LLAMACPP_MODEL):
             port = 9999
-            host = "llamacpp-model-runner"
+            host = "llamacpp-models-runner"
+        elif model.startswith(self.OLLAMA_MODEL):
+            port = 11434
+            host = "llamacpp-models-runner"
         else:
             raise ValueError(f"Unsupported local model type: {model}")
 
