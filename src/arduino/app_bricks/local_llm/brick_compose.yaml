@@ -48,5 +48,3 @@ services:
     shm_size: 2g
     volumes:
       - ${APPLAB_DOWNLOADED_LLAMA_CPP_MODELS:-/home/ubuntu/llamacpp-models/}:/mnt/work/models/
-    command: >
-      /usr/local/bin/llama-server --models-dir /models --models-max 4 --host 0.0.0.0 --port 9999
