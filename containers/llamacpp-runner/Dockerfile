@@ -1,6 +1,6 @@
 FROM docker.io/ollama/ollama:latest AS ollama
 
-FROM ubuntu:24.04 AS llamacpp-builder
+FROM debian:trixie AS llamacpp-builder
 
 # Install Dependencies
 RUN export DEBIAN_FRONTEND=noninteractive; \
@@ -31,8 +31,8 @@ RUN cd ~/dev/llm; \
 		-DGGML_NATIVE=OFF \
 		-DLLAMA_BUILD_TESTS=OFF \
 		-DGGML_BACKEND_DL=ON \
-        # Disabling CPU repacking for compatibility issues
-		-DGGML_USE_CPU_REPACK=OFF \
+        # Enabling CPU repacking for compatibility issues
+		-DGGML_USE_CPU_REPACK=ON \
 		-DGGML_CPU_ALL_VARIANTS=OFF; \
     ninja -j`nproc`
 
@@ -43,7 +43,7 @@ RUN cd ~/dev/llm/llama.cpp/build/; \
     cp bin-full/llama-server bin/; \
     cp bin-full/lib* bin/
 
-FROM ubuntu:24.04 AS production
+FROM debian:trixie AS production
 
 COPY --from=llamacpp-builder /root/dev/llm/llama.cpp/build/bin /usr/local/bin/
 COPY ./run.sh /
@@ -82,4 +82,4 @@ ENV LLAMA_ARG_MODELS_MAX=4
 #ENV LLAMA_ARG_THREADS=4
 #ENV LLAMA_API_KEY=key
 
-ENTRYPOINT ["./run.sh"]
+ENTRYPOINT ["/run.sh"]
