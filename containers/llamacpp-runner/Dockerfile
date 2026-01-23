@@ -1,6 +1,8 @@
-FROM docker.io/ollama/ollama:latest AS ollama
-
 FROM debian:trixie AS llamacpp-builder
+
+ENV GO_VERSION=1.25.6
+ENV OLLAMA_VERSION=v0.14.3
+ENV LLAMA_CPP_VERSION=b7818
 
 # Install Dependencies
 RUN export DEBIAN_FRONTEND=noninteractive; \
@@ -17,9 +19,15 @@ RUN export DEBIAN_FRONTEND=noninteractive; \
     libssl-dev:arm64 \
     && update-ca-certificates
 
+# Install Go
+RUN curl -fsSL https://go.dev/dl/go${GO_VERSION}.linux-arm64.tar.gz -o /tmp/go.tar.gz \
+    && tar -C /usr/local -xzf /tmp/go.tar.gz \
+    && rm /tmp/go.tar.gz
+
 RUN cd ~/dev/llm; \
     git clone https://github.com/ggml-org/llama.cpp; \
     cd llama.cpp; \
+    git checkout ${LLAMA_CPP_VERSION}; \
     # Build master, but we can switch to a specific commit if needed
     mkdir -p build; \
     cd build; \
@@ -43,13 +51,19 @@ RUN cd ~/dev/llm/llama.cpp/build/; \
     cp bin-full/llama-server bin/; \
     cp bin-full/lib* bin/
 
+# Compile ollama binaries
+RUN cd ~/dev/; \
+    git clone https://github.com/ollama/ollama.git; \
+    cd ollama; \
+    git checkout ${OLLAMA_VERSION}; \
+    /usr/local/go/bin/go build -o /usr/bin/ollama
+
 FROM debian:trixie AS production
 
 COPY --from=llamacpp-builder /root/dev/llm/llama.cpp/build/bin /usr/local/bin/
 COPY ./run.sh /
 
-COPY --from=ollama /usr/bin/ollama /usr/bin/ollama
-COPY --from=ollama /usr/lib/ollama/libggml-* /usr/lib/ollama/
+COPY --from=llamacpp-builder /usr/bin/ollama /usr/bin/ollama
 
 RUN set -ex; \
     groupadd -g 44 video || true; \
