@@ -4,19 +4,18 @@
 cleanup() {
     echo "SIGTERM received. Cleaning up..."
     # Kill background processes
-    kill "$LLAMA_PID"
+    kill "$OLLAMA_PID"
     exit 0
 }
 
 # Trap SIGTERM and SIGINT
 trap cleanup SIGTERM SIGINT
 
-echo "Starting Llama server..."
-# Add your specific flags here (model path, port, etc.)
-LD_LIBRARY_PATH=/usr/local/bin/ /usr/local/bin/llama-server --models-dir /models &
-LLAMA_PID=$!
+echo "Starting Ollama serve..."
+ollama serve &
+OLLAMA_PID=$!
 
-echo "Processes started (Llama: $LLAMA_PID). Waiting..."
+echo "Processes started (Ollama: $OLLAMA_PID). Waiting..."
 
 # Wait for background processes to keep the script running
 wait
