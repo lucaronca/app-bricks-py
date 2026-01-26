@@ -1,6 +1,6 @@
 services:
   genie-models-runner:
-    image: ${DOCKER_REGISTRY_BASE:-ghcr.io/arduino/}app-bricks/genie-models-runner:1.1
+    image: ${DOCKER_REGISTRY_BASE:-ghcr.io/arduino/}app-bricks/genie-models-runner:dev-latest
     logging:
       driver: "json-file"
       options:
@@ -33,7 +33,7 @@ services:
       sh -c "hypercorn openapi_server.main:app --bind 0.0.0.0:${GENAI_PORT:-9001}
       --reload --access-log - --error-log - --log-level error"
   llamacpp-models-runner:
-    image: ${DOCKER_REGISTRY_BASE:-ghcr.io/arduino/}app-bricks/llamacpp-models-runner:1.1
+    image: ${DOCKER_REGISTRY_BASE:-ghcr.io/arduino/}app-bricks/llamacpp-models-runner:dev-latest
     logging:
       driver: "json-file"
       options:
@@ -48,7 +48,7 @@ services:
     volumes:
       - ${APPLAB_DOWNLOADED_LLAMA_CPP_MODELS:-/home/ubuntu/models/llamacpp/}:/models/
   ollama-models-runner:
-    image: ${DOCKER_REGISTRY_BASE:-ghcr.io/arduino/}app-bricks/ollama-models-runner:1.1
+    image: ${DOCKER_REGISTRY_BASE:-ghcr.io/arduino/}app-bricks/ollama-models-runner:dev-latest
     logging:
       driver: "json-file"
       options:

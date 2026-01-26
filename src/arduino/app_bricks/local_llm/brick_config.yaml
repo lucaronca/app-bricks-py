@@ -7,4 +7,4 @@ model: genie:qwen2.5-7b
 variables:
   - name: LOCAL_LLM_API_KEY
     description: API Key for the local LLM service
-    default: "api_key"
+    default_value: api_key
