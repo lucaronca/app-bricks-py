@@ -9,13 +9,11 @@ FROM ${REGISTRY}app-bricks/base:latest AS production
 COPY --from=ollama-builder /usr/bin/ollama /usr/bin/ollama
 COPY --from=ollama-builder /usr/lib/ollama/libggml* /usr/lib/ollama/
 
-COPY ./run.sh /
-COPY ./download-model.sh /
+COPY ./scripts/*.sh /
 
 RUN set -ex; \
     chmod +x /usr/bin/ollama; \
-    chmod +x /run.sh; \
-    chmod +x /download-model.sh
+    chmod +x /*.sh
 
 # Ollama settings
 ENV OLLAMA_HOST=0.0.0.0
