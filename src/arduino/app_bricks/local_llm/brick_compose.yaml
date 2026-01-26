@@ -13,7 +13,7 @@ services:
     oom_kill_disable: false
     shm_size: 2g
     volumes:
-      - ${APPLAB_DOWNLOADED_LLAMA_CPP_MODELS:-/home/ubuntu/llamacpp-models/}:/mnt/work/models/
+      - ${APPLAB_DOWNLOADED_LLAMA_CPP_MODELS:-/home/arduino/models/llamacpp/}:/models/
   ollama-models-runner:
     image: ${DOCKER_REGISTRY_BASE:-ghcr.io/arduino/}app-bricks/ollama-models-runner:1.1
     logging:
@@ -28,4 +28,4 @@ services:
     oom_kill_disable: false
     shm_size: 2g
     volumes:
-      - ${APPLAB_DOWNLOADED_OLLAMA_MODELS:-/home/ubuntu/ollama-models/}:/mnt/work/models/      
+      - ${APPLAB_DOWNLOADED_OLLAMA_MODELS:-/home/arduino/models/ollama/}:/models/      
