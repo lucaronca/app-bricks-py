@@ -1,4 +1,4 @@
-name: DEV - AI CONTAINERS build & publish Arduino dev-latest containers
+name: DEV - AI CONTAINERS build & publish
 
 on:
   workflow_dispatch:
