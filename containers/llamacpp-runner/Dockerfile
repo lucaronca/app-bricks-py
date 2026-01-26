@@ -1,3 +1,5 @@
+ARG REGISTRY
+
 FROM debian:trixie AS llamacpp-builder
 
 ENV LLAMA_CPP_VERSION=b7818

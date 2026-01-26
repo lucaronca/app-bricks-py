@@ -1,3 +1,4 @@
+ARG REGISTRY
 ARG OLLAMA_VERSION=v0.15.1
 
 FROM ollama/ollama:${OLLAMA_VERSION} AS ollama-builder
