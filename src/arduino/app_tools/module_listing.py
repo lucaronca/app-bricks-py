@@ -331,12 +331,12 @@ def release():
         registry = args.registry
 
     arduino_bricks_version = args.version
-    update_ei_containers = False
+    update_ai_containers = False
     if args.dev is not None and args.dev:
         logger.warning("Development mode enabled. Using 'dev-latest' as the version.")
         arduino_bricks_version = "dev-latest"
-        update_ei_containers = True
-
+        update_ai_containers = True
+        
     modules = []
     for path, module_list in discovered_modules.items():
         for module in module_list:
@@ -348,7 +348,7 @@ def release():
                     compose_file_path=module.compose_file,
                     release_version=arduino_bricks_version,
                     append_suffix=False,
-                    only_ei_containers=update_ei_containers,
+                    only_ai_containers=update_ai_containers,
                     registry=registry,
                 )
 
@@ -395,7 +395,7 @@ def update_ai_container_references():
                     compose_file_path=module.compose_file,
                     release_version=arduino_bricks_version,
                     append_suffix=False,
-                    only_ei_containers=True,
+                    only_ai_containers=True,
                     registry=registry,
                 )
 
