@@ -71,4 +71,9 @@ ENV LLAMA_ARG_MODELS_MAX=4
 
 EXPOSE 9999
 
+USER arduino
+
+ENV HOME=/home/arduino
+ENV USER=arduino
+
 ENTRYPOINT ["/run.sh"]

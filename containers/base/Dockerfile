@@ -5,6 +5,13 @@
 FROM debian:trixie AS production
 
 RUN set -ex; \
+    groupadd -g 44 video || true; \
+    groupadd -g 29 audio || true; \
+    groupadd -g 20 dialout || true; \
+    groupadd -g 991 render || true; \
+    groupadd -g 1000 arduino || true; \
+    groupadd -g 1001 gpiod || true; \
+    useradd -u 1000 -g arduino -G audio,video,dialout,render,gpiod -ms /bin/bash arduino; \
     apt-get update -y; \
     apt-get upgrade -y; \
     apt install --no-install-recommends -y curl libgomp1 ca-certificates; \

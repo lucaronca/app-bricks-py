@@ -22,4 +22,9 @@ ENV OLLAMA_MODELS=/models
 
 EXPOSE 11434
 
+USER arduino
+
+ENV HOME=/home/arduino
+ENV USER=arduino
+
 ENTRYPOINT ["/run.sh"]
