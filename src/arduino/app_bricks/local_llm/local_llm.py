@@ -79,10 +79,10 @@ class LocalLLM(CloudLLM):
 
         base_url = f"http://{host}:{port}/v1"
 
+        logger.info(f"Initializing LocalLLM with model '{model}' at {base_url}")
+
         # Force OpenAI provider for local LLMs to force ChatCompletion APIs
         model = f"{CloudModelProvider.OPENAI}:{model}"
-
-        logger.info(f"Initializing LocalLLM with model '{model}' at {base_url}")
 
         super().__init__(
             api_key=api_key,
