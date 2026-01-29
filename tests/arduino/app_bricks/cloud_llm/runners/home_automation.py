@@ -3,13 +3,15 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from __future__ import annotations
-
-from typing import Any, Dict, List, Optional, Tuple
+import asyncio
+from typing import Any, Dict, List, Tuple
 
 from conftest import ModelConfig
 from arduino.app_bricks.cloud_llm import CloudLLM
 from stubs.weather_tool import get_current_weather
 from runners import runner, ToolTrace
+
+from langchain_mcp_adapters.client import MultiServerMCPClient
 
 
 def _run(
@@ -17,26 +19,28 @@ def _run(
     prompt: str,
     port: int,
     tool_trace: ToolTrace,
-    tools: Optional[List[Any]] = None,
+    tools: List[Any] = [],
 ) -> Tuple[CloudLLM, str]:
+    mcp_client = MultiServerMCPClient(
+        {
+            "home_automation": {
+                "transport": "streamable_http",
+                "url": f"http://localhost:{port}/mcp",
+            }
+        }
+    )
+
+    mcp_tools = asyncio.run(mcp_client.get_tools())
+    tools.extend(mcp_tools)
+
     llm_kwargs: Dict[str, Any] = {
         "model": model.name,
+        "base_url": model.base_url,
         "temperature": 0,
         "api_key": model.api_key,
-        "mcp_servers": [
-            {
-                "name": "home_automation",
-                "connection": {
-                    "transport": "streamable_http",
-                    "url": f"http://localhost:{port}/mcp",
-                },
-            }
-        ],
+        "tools": tools,
         "callbacks": [tool_trace],
     }
-
-    if tools:
-        llm_kwargs["tools"] = tools
 
     llm = CloudLLM(**llm_kwargs)
     llm_response = llm.chat(prompt)

@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: MPL-2.0
 
+import asyncio
 import base64
 import os
 import threading
@@ -178,7 +179,12 @@ class CloudLLM:
             if tool_name in self._tools_map:
                 logger.debug(f"Invoking tool function for: {tool_name}")
                 tool_func = self._tools_map[tool_name]
-                tool_output = tool_func.invoke(tool_args, config={"callbacks": self._callbacks},)
+                tool_output = asyncio.run(
+                    tool_func.ainvoke(
+                        tool_args,
+                        config={"callbacks": self._callbacks},
+                    )
+                )
                 logger.debug(f"Tool '{tool_name}' returned: {tool_output}")
 
                 # Append tool output message to current message scope

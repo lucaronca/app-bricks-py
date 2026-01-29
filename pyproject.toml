@@ -38,6 +38,8 @@ dev = [
     "arduino_app_bricks[all]",
     "deepeval",
     "mcp",
+    "langchain_mcp_adapters",
+    "langchain_ollama",
 ]
 dbstorage_influx = [
     "influxdb_client>=1.48.0",

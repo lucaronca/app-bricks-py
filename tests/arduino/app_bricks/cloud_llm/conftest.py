@@ -25,7 +25,7 @@ from fastapi import FastAPI
 
 
 logger = Logger("cloud_llm_tests")
-pytest_plugins = ["fixtures.judge_model", "fixtures.runners"]
+pytest_plugins = ["fixtures.judge_model", "fixtures.runners", "fixtures.model_factory"]
 
 
 @dataclass(frozen=True)
@@ -34,11 +34,20 @@ class ModelConfig:
     provider: str
     requires_api_key: bool = True
     api_key: str | None = None
+    base_url: str | None = None
 
 
 models_to_test = [
-    ModelConfig(name="gemini-2.5-flash", provider=CloudModelProvider.GOOGLE, api_key=os.getenv("GEMINI_API_KEY")),
-    ModelConfig(name=CloudModel.OLLAMA, provider=CloudModelProvider.OLLAMA, requires_api_key=False),
+    ModelConfig(
+        name="gemini-2.5-flash",
+        provider=CloudModelProvider.GOOGLE,
+        api_key=os.getenv("GEMINI_API_KEY")
+    ),
+    ModelConfig(
+        name="ollama-qwen2.5:7b",
+        provider="ollama",
+        requires_api_key=False,
+    ),
 ]
 
 
