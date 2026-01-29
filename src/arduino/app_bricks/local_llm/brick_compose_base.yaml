@@ -8,14 +8,14 @@ services:
         max-file: "2"
     environment:
       - LLAMA_LOG_LEVEL=error
-    working_dir: /models     
+    working_dir: /models
     ports:
       - ${BIND_ADDRESS:-127.0.0.1}:9999:9999
     mem_limit: 10g
     oom_kill_disable: false
     shm_size: 2g
     volumes:
-      - ${APPLAB_DOWNLOADED_LLAMA_CPP_MODELS:-/home/arduino/models/llamacpp/}:/models/
+      - ${APPLAB_DOWNLOADED_LLAMA_CPP_MODELS:-${HOME}/ArduinoAppsSharedData/llamacpp/}:/models/
   ollama-models-runner:
     image: ${DOCKER_REGISTRY_BASE:-ghcr.io/arduino/}app-bricks/ollama-models-runner:dev-latest
     logging:
@@ -23,11 +23,11 @@ services:
       options:
         max-size: "5m"
         max-file: "2"
-    working_dir: /models     
+    working_dir: /models
     ports:
       - ${BIND_ADDRESS:-127.0.0.1}:11434:11434
     mem_limit: 10g
     oom_kill_disable: false
     shm_size: 2g
     volumes:
-      - ${APPLAB_DOWNLOADED_OLLAMA_MODELS:-/home/arduino/models/ollama/}:/models/      
+      - ${APPLAB_DOWNLOADED_OLLAMA_MODELS:-${HOME}/ArduinoAppsSharedData/ollama/}:/models/
