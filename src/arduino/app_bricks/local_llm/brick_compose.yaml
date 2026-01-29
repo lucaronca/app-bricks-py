@@ -1,6 +1,8 @@
 services:
   genie-models-runner:
     image: ${DOCKER_REGISTRY_BASE:-ghcr.io/arduino/}app-bricks/genie-models-runner:dev-latest
+    # Currently, genie-models-runner requires to run as root
+    user: 0:0
     logging:
       driver: "json-file"
       options:
