@@ -59,16 +59,6 @@ RUN set -ex; \
     chmod +x /usr/local/bin/*; \
     chmod +x /run.sh
 
-# Environment variable setup
-
-# Llama.cpp server settings
-ENV LLAMA_ARG_HOST=0.0.0.0
-ENV LLAMA_ARG_PORT=9999
-ENV LLAMA_ARG_MODELS_DIR=/models
-ENV LLAMA_ARG_MODELS_MAX=4
-#ENV LLAMA_ARG_THREADS=4
-#ENV LLAMA_API_KEY=key
-
 EXPOSE 9999
 
 USER arduino
