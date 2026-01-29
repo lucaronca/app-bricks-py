@@ -8,3 +8,4 @@ variables:
   - name: LOCAL_LLM_API_KEY
     description: API Key for the local LLM service
     default_value: api_key
+    secret: true
