@@ -21,14 +21,12 @@ def _run(
     tool_trace: ToolTrace,
     tools: List[Any] = [],
 ) -> Tuple[CloudLLM, str]:
-    mcp_client = MultiServerMCPClient(
-        {
-            "home_automation": {
-                "transport": "streamable_http",
-                "url": f"http://localhost:{port}/mcp",
-            }
+    mcp_client = MultiServerMCPClient({
+        "home_automation": {
+            "transport": "streamable_http",
+            "url": f"http://localhost:{port}/mcp",
         }
-    )
+    })
 
     mcp_tools = asyncio.run(mcp_client.get_tools())
     tools.extend(mcp_tools)

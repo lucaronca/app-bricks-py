@@ -38,11 +38,7 @@ class ModelConfig:
 
 
 models_to_test = [
-    ModelConfig(
-        name="gemini-2.5-flash",
-        provider=CloudModelProvider.GOOGLE,
-        api_key=os.getenv("GEMINI_API_KEY")
-    ),
+    ModelConfig(name="gemini-2.5-flash", provider=CloudModelProvider.GOOGLE, api_key=os.getenv("GEMINI_API_KEY")),
     ModelConfig(
         name="ollama-qwen2.5:7b",
         provider="ollama",

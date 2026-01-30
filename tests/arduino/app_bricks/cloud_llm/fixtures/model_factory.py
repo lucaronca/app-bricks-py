@@ -1,5 +1,10 @@
+# SPDX-FileCopyrightText: Copyright (C) ARDUINO SRL (http://www.arduino.cc)
+#
+# SPDX-License-Identifier: MPL-2.0
+
 import pytest
 from langchain_ollama import ChatOllama
+
 
 @pytest.fixture(autouse=True)
 def model_factory_fixture(monkeypatch):
@@ -13,7 +18,7 @@ def model_factory_fixture(monkeypatch):
             name = model_name.split("-", 1)[1]
             return ChatOllama(base_url=base_url, model=name)
 
-        return real_model_factory(model_name, **kwargs) # type: ignore
+        return real_model_factory(model_name, **kwargs)  # type: ignore
 
     monkeypatch.setattr(cloud_llm, "model_factory", _model_factory)
     yield
