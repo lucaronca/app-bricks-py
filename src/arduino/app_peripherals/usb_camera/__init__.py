@@ -7,7 +7,7 @@ import warnings
 from PIL import Image
 from arduino.app_peripherals.camera import Camera as Camera, CameraReadError as CRE, CameraOpenError as COE
 from arduino.app_peripherals.camera.v4l_camera import V4LCamera
-from arduino.app_utils.image import letterboxed, compressed_to_png
+from arduino.app_utils.image import letterboxed, compressed_to_png, numpy_to_pil
 from arduino.app_utils import Logger
 
 logger = Logger("USB Camera")
