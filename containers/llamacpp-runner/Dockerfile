@@ -2,7 +2,7 @@ ARG REGISTRY
 
 FROM debian:trixie AS llamacpp-builder
 
-ENV LLAMA_CPP_VERSION=b7818
+ENV LLAMA_CPP_VERSION=b7921
 
 # Install Dependencies
 RUN export DEBIAN_FRONTEND=noninteractive; \
@@ -19,11 +19,13 @@ RUN export DEBIAN_FRONTEND=noninteractive; \
     libssl-dev:arm64 \
     && update-ca-certificates
 
+COPY ./tools-download.patch /tmp/tools-download.patch
+
 RUN cd ~/dev/llm; \
     git clone https://github.com/ggml-org/llama.cpp; \
     cd llama.cpp; \
     git checkout ${LLAMA_CPP_VERSION}; \
-    # Build master, but we can switch to a specific commit if needed
+    git apply /tmp/tools-download.patch; \
     mkdir -p build; \
     cd build; \
     cmake .. -G Ninja \
@@ -44,12 +46,13 @@ RUN cd ~/dev/llm/llama.cpp/build/; \
     mkdir -p bin; \
     cp bin-full/llama-cli bin/; \
     cp bin-full/llama-server bin/; \
+    cp bin-full/llama-pull bin/; \
     cp bin-full/lib* bin/
 
 FROM ${REGISTRY}app-bricks/base:latest AS production
 
 COPY --from=llamacpp-builder /root/dev/llm/llama.cpp/build/bin /usr/local/bin/
-COPY ./run.sh /
+COPY ./scripts/*.sh /
 
 RUN set -ex; \
     groupadd -g 44 video || true; \
@@ -57,7 +60,7 @@ RUN set -ex; \
     usermod -aG video ubuntu || true; \
     usermod -aG render ubuntu || true; \
     chmod +x /usr/local/bin/*; \
-    chmod +x /run.sh
+    chmod +x /*.sh
 
 EXPOSE 9999
 
