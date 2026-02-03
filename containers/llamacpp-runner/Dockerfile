@@ -37,7 +37,6 @@ RUN cd ~/dev/llm; \
 		-DGGML_NATIVE=OFF \
 		-DLLAMA_BUILD_TESTS=OFF \
 		-DGGML_BACKEND_DL=ON \
-        # Enabling CPU repacking
 		-DGGML_USE_CPU_REPACK=ON \
 		-DGGML_CPU_ALL_VARIANTS=ON; \
     ninja -j`nproc`
