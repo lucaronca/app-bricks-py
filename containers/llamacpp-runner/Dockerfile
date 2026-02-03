@@ -36,9 +36,9 @@ RUN cd ~/dev/llm; \
 		-DGGML_NATIVE=OFF \
 		-DLLAMA_BUILD_TESTS=OFF \
 		-DGGML_BACKEND_DL=ON \
-        # Enabling CPU repacking for compatibility issues
+        # Enabling CPU repacking
 		-DGGML_USE_CPU_REPACK=ON \
-		-DGGML_CPU_ALL_VARIANTS=OFF; \
+		-DGGML_CPU_ALL_VARIANTS=ON; \
     ninja -j`nproc`
 
 RUN cd ~/dev/llm/llama.cpp/build/; \
