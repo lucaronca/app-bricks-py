@@ -21,6 +21,11 @@ case "$CMD" in
       usage
     else
       LD_LIBRARY_PATH=/usr/local/bin/ /usr/local/bin/llama-pull -dr "$ARG"
+
+      # Move model files to /models root
+      mc /models/llama.cpp/* /models
+      rm -f /models/*.etag
+      rm -fr /models/llama.cpp
     fi
     ;;
   *)
@@ -29,3 +34,4 @@ case "$CMD" in
 esac
 
 echo "Done."
+exit 0
