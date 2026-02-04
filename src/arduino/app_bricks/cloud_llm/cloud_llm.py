@@ -11,12 +11,12 @@ from typing import Iterator, List, Optional, Union, Any, Callable
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage, HumanMessage, ToolMessage, AIMessage, ToolCall
 
-from arduino.app_utils import Logger, brick
+from arduino.app_utils import brick
 
+from .utils import logger
 from .models import CloudModel, CloudModelProvider
 from .memory import WindowedChatMessageHistory
 
-logger = Logger("CloudLLM")
 DEFAULT_MEMORY = 10
 
 
