@@ -2,23 +2,16 @@
 #
 # SPDX-License-Identifier: MPL-2.0
 
-from langchain_core.messages import BaseMessage, SystemMessage
+from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage
 from typing import List
 
 from .utils import logger
+
 
 class WindowedChatMessageHistory:
     """A chat history store that automatically keeps a window of the last k messages."""
 
     k: int
-
-    def __init__(self, k: int, system_message: str = ""):
-        self.k = k
-        self._messages: list[BaseMessage] = []
-        if system_message != "":
-            self._system_message = SystemMessage(content=system_message)
-        else:
-            self._system_message = None
 
     def __init__(self, k: int, system_message: str = ""):
         self.k = k
@@ -37,7 +30,17 @@ class WindowedChatMessageHistory:
             self._messages.append(message)
 
         if len(self._messages) > self.k:
-            self._messages = self._messages[-self.k :]
+            start = len(self._messages) - self.k
+
+            # Ensure we do not start the window with an AIMessage that has tool calls, as that would be not accepted by providers.
+            if isinstance(self._messages[start], AIMessage) and len(getattr(self._messages[start], "tool_calls", None) or []) > 0:
+                logger.debug("Adjusting memory window to avoid starting with AIMessage(tool_calls).")
+                while start >= 0 and not isinstance(self._messages[start], HumanMessage):
+                    start -= 1
+                if start < 0:
+                    raise RuntimeError("Inconsistent state: window starts with AIMessage(tool_calls) but no HumanMessage exists before it.")
+
+            self._messages = self._messages[start:]
 
     def get_messages(self) -> List[BaseMessage]:
         """Get all messages in the history, including system message if set."""
