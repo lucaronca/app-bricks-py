@@ -328,7 +328,7 @@ def release():
         logger.warning("Development mode enabled. Using 'dev-latest' as the version.")
         arduino_bricks_version = "dev-latest"
         update_ai_containers = True
-        
+
     modules = []
     for path, module_list in discovered_modules.items():
         for module in module_list:

@@ -8,9 +8,7 @@
 from arduino.app_bricks.local_llm import LocalLLM
 from arduino.app_utils import App
 
-llm = LocalLLM(
-    model="ollama:gemma2:270m"
-)
+llm = LocalLLM(model="ollama:gemma2:270m")
 
 
 def ask_prompt():
