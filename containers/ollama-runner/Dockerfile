@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: Copyright (C) ARDUINO SRL (http://www.arduino.cc)
+#
+# SPDX-License-Identifier: MPL-2.0
+
 ARG REGISTRY
 ARG OLLAMA_VERSION=0.15.4
 

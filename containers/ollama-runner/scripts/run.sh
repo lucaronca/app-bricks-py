@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# SPDX-FileCopyrightText: Copyright (C) ARDUINO SRL (http://www.arduino.cc)
+#
+# SPDX-License-Identifier: MPL-2.0
+
 # Function to handle cleanup on SIGTERM
 cleanup() {
     echo "SIGTERM received. Cleaning up..."
