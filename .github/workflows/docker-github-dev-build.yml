@@ -26,7 +26,7 @@ jobs:
           - dockerfile: ./containers/python-apps-base/Dockerfile
             context: ./containers/python-apps-base
             image: ghcr.io/${{ github.repository_owner }}/app-bricks/python-apps-base
-            build_python_package: true           
+            build_python_package: true
       max-parallel: 4
 
     steps:
@@ -71,7 +71,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           tags: |
-            type=raw,value=dev-latest,enable=true
+            type=raw,value=dev-next,enable=true
           images: ${{ matrix.image }}
 
       # Build and push Docker image with Buildx (don't push on PR)
