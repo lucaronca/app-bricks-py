@@ -78,6 +78,9 @@ if [ -d "/app/bricks" ]; then
     fi
 fi
 
+# Pre-provision ALSA wrapped devices
+bash /provision-alsa-devices.sh
+
 if [ "$1" = "provision" ]; then
   arduino-bricks-list-modules --provision-compose
 else
