@@ -100,7 +100,18 @@ jobs:
           # A container is downstream if it appears in the downstream list of another container being built.
           DOWNSTREAM_IN_BUILD=()
           for CONTAINER in "${CHANGED[@]}"; do
-            DS_LIST=$(jq -r '.downstream // [] | .[]' "containers/$CONTAINER/ci.json" 2>/dev/null)
+            CI_FILE="containers/$CONTAINER/ci.json"
+
+            if [[ ! -f "$CI_FILE" ]]; then
+              echo "Missing ci.json for container: $CONTAINER"
+              exit 1
+            fi
+
+            if ! DS_LIST=$(jq -r '.downstream // [] | .[]' "$CI_FILE"); then
+              echo "Invalid ci.json for container: $CONTAINER"
+              exit 1
+            fi
+
             for DS in $DS_LIST; do
               if [[ " ${CHANGED[*]} " =~ " $DS " ]] && [[ ! " ${DOWNSTREAM_IN_BUILD[*]} " =~ " $DS " ]]; then
                 DOWNSTREAM_IN_BUILD+=("$DS")
