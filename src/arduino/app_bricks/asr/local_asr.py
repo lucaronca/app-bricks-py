@@ -137,6 +137,8 @@ class AudioStreamRouter:
 
 @brick
 class AutomaticSpeechRecognition:
+    app_service_name = "audio-analytics-runner"
+
     def __init__(self, language: str = "en"):
         """ASR implementation that uses a local audio analytics service to decode audio streams.
 
@@ -145,14 +147,7 @@ class AutomaticSpeechRecognition:
 
         """
         self.max_concurrent_transcriptions = 3
-
-        # self.api_host = "localhost"
-        # infra = load_brick_compose_file(self.__class__) or {}
-        # for k, _ in infra["services"].items():
-        #     self.api_host = k
-        #     break
-        self.api_host = "audio-analytics-runner"  # @TODO: Use actual service discovery (reading service_compose.yaml) instead of hardcoding
-        self.api_host = resolve_address(self.api_host)
+        self.api_host = resolve_address(self.app_service_name)
         if not self.api_host:
             raise RuntimeError("Host address could not be resolved. Please check your configuration.")
 
