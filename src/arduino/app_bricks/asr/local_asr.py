@@ -233,10 +233,7 @@ class AutomaticSpeechRecognition:
             raise RuntimeError(f"Failed to close session {session_id}: {e}") from e
 
         if response.status_code != 200:
-            raise RuntimeError(
-                f"Failed to close session {session_id}: "
-                f"close returned status {response.status_code}: {response.text}"
-            )
+            raise RuntimeError(f"Failed to close session {session_id}: close returned status {response.status_code}: {response.text}")
 
         logger.debug(f"Session {session_id} closed successfully")
         with self._active_sessions_lock:
