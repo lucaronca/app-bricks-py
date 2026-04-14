@@ -23,6 +23,45 @@ from arduino.app_utils import Logger, brick
 
 logger = Logger("LocalASR")
 
+_DEFAULT_SAMPLING_RATE = 16000
+_DEFAULT_CHANNELS = 1
+_DEFAULT_PCM_FORMAT = "pcm_s16le"
+_DEFAULT_VAD = "700"
+
+
+def _dtype_to_pcm_format(dtype: np.dtype, is_packed: bool = False) -> str:
+    """Map a numpy dtype to an API PCM format string (e.g. 'pcm_s16le')."""
+    import sys
+
+    byteorder = dtype.byteorder
+    if byteorder in ("=", "|"):
+        byteorder = "<" if sys.byteorder == "little" else ">"
+    endian = "le" if byteorder == "<" else "be"
+    kind = dtype.kind
+    size = dtype.itemsize
+
+    if kind == "i":
+        if size == 1:
+            return "pcm_s8"
+        elif size == 2:
+            return f"pcm_s16{endian}"
+        elif size == 4:
+            return f"pcm_s24{endian}" if is_packed else f"pcm_s32{endian}"
+    elif kind == "u":
+        if size == 1:
+            return "pcm_u8"
+        elif size == 2:
+            return f"pcm_u16{endian}"
+        elif size == 4:
+            return f"pcm_u32{endian}"
+    elif kind == "f":
+        if size == 4:
+            return f"pcm_f32{endian}"
+        elif size == 8:
+            return f"pcm_f64{endian}"
+
+    raise ValueError(f"Unsupported numpy dtype for PCM format: {dtype}")
+
 
 @dataclass(frozen=True)
 class ASREvent:
@@ -288,16 +327,25 @@ class AutomaticSpeechRecognition:
         try:
             logger.debug(f"Creating transcription session with model={self.model}, language={self.language}")
 
+            if isinstance(audio_source, BaseMicrophone):
+                sampling_rate = str(audio_source.sample_rate)
+                channels = str(audio_source.channels)
+                pcm_format = _dtype_to_pcm_format(audio_source.format, audio_source.format_is_packed)
+            else:
+                sampling_rate = str(_DEFAULT_SAMPLING_RATE)
+                channels = str(_DEFAULT_CHANNELS)
+                pcm_format = _DEFAULT_PCM_FORMAT
+
             create_url = f"{self.api_base_url}/transcriptions/create"
             create_data = {
                 "model": self.model,
                 "stream": True,
                 "language": self.language,
                 "parameters": json.dumps([
-                    {"key": "sampling_rate", "value": "16000"},
-                    {"key": "channels", "value": "1"},
-                    {"key": "format", "value": "pcm_s16le"},
-                    {"key": "vad", "value": "700"},
+                    {"key": "sampling_rate", "value": sampling_rate},
+                    {"key": "channels", "value": channels},
+                    {"key": "format", "value": pcm_format},
+                    {"key": "vad", "value": _DEFAULT_VAD},
                 ]),
             }
 
