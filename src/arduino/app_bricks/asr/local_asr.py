@@ -176,14 +176,17 @@ class AutomaticSpeechRecognition:
 
     def stop(self):
         """Stop the ASR and clean up resources."""
+        logger.debug("Stopping ASR and cleaning up resources...")
         self._stop_worker.set()
+
         with self._active_sessions_lock:
             active_ids = list(self._active_session_ids)
-            for session_id in active_ids:
-                try:
-                    self._close_transcription_session(session_id)
-                except Exception as e:
-                    logger.warning(f"Failed to close session {session_id} during stop: {e}")
+
+        for session_id in active_ids:
+            try:
+                self._close_transcription_session(session_id)
+            except Exception as e:
+                logger.warning(f"Failed to close session {session_id} during stop: {e}")
 
     def _close_transcription_session(self, session_id: str) -> None:
         logger.debug(f"Closing transcription session {session_id}")
@@ -192,13 +195,18 @@ class AutomaticSpeechRecognition:
 
         try:
             response = requests.post(url, json=payload, timeout=5)
-            if response.status_code == 200:
-                logger.debug(f"Session {session_id} closed successfully")
-                self._active_session_ids.discard(session_id)
-            else:
-                logger.warning(f"Session close returned status {response.status_code} for session {session_id}: {response.text}")
         except Exception as e:
-            logger.warning(f"Failed to close session {session_id}: {e}")
+            raise RuntimeError(f"Failed to close session {session_id}: {e}") from e
+
+        if response.status_code != 200:
+            raise RuntimeError(
+                f"Failed to close session {session_id}: "
+                f"close returned status {response.status_code}: {response.text}"
+            )
+
+        logger.debug(f"Session {session_id} closed successfully")
+        with self._active_sessions_lock:
+            self._active_session_ids.discard(session_id)
 
     def transcribe_mic(self, mic: BaseMicrophone, duration: int = 0) -> str:
         """
@@ -473,18 +481,23 @@ class AutomaticSpeechRecognition:
                     break
 
             finally:
-                session_info.cancelled.set()
+                close_error = None
 
                 try:
-                    self._close_transcription_session(session_id)
+                    await asyncio.to_thread(self._close_transcription_session, session_id)
                 except Exception as e:
-                    logger.warning(f"Failed to close session {session_id}: {e}")
+                    close_error = e
+
+                session_info.cancelled.set()
 
                 for task in (send_task, receive_task):
                     if task and not task.done():
                         task.cancel()
 
                 await asyncio.gather(send_task, receive_task, return_exceptions=True)
+
+                if close_error is not None:
+                    raise close_error
 
     async def _send_pcm_stream(
         self,
@@ -614,7 +627,6 @@ class AutomaticSpeechRecognition:
     async def _receive_transcription(self, websocket: websockets.ClientConnection, session_info: MicSessionInfo | WAVSessionInfo) -> None:
         """
         Receive transcription events for one session over its dedicated websocket.
-        The session ends only when transcript.text.done arrives, or on error/close.
         """
         session_id = session_info.session_id
         result_queue = session_info.result_queue
