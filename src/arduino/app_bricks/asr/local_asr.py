@@ -201,6 +201,8 @@ class AutomaticSpeechRecognition:
         self._stop_worker = threading.Event()
         self._audio_stream_router = AudioStreamRouter()
         self._session_semaphore = threading.Semaphore(self.max_concurrent_transcriptions)
+        self._active_sessions: dict[str, threading.Event] = {}
+        self._active_sessions_lock = threading.Lock()
 
     def start(self):
         """Prepare the ASR for transcription."""
@@ -210,6 +212,20 @@ class AutomaticSpeechRecognition:
         """Stop the ASR and clean up resources."""
         logger.debug("Stopping ASR and cleaning up resources...")
         self._stop_worker.set()
+
+    def cancel(self):
+        """Cancel all active transcription sessions."""
+        with self._active_sessions_lock:
+            sessions = dict(self._active_sessions)
+
+        if not sessions:
+            logger.info("No active sessions to cancel")
+            return
+
+        logger.info(f"Cancelling {len(sessions)} active session(s): {list(sessions.keys())}")
+        for session_id, cancelled_event in sessions.items():
+            cancelled_event.set()
+            logger.debug(f"Cancelled session {session_id}")
 
     def _close_transcription_session(self, session_id: str) -> None:
         logger.debug(f"Closing transcription session {session_id}")
@@ -351,6 +367,9 @@ class AutomaticSpeechRecognition:
             if not session_id:
                 raise RuntimeError("No session ID returned from transcription API")
 
+            with self._active_sessions_lock:
+                self._active_sessions[session_id] = cancelled
+
             state = result.get("state")
             if state != "asr_initialized":
                 logger.warning(f"ASR session {session_id} created but not initialized (state={state})")
@@ -414,6 +433,9 @@ class AutomaticSpeechRecognition:
 
         finally:
             cancelled.set()
+            if session_id:
+                with self._active_sessions_lock:
+                    self._active_sessions.pop(session_id, None)
             self._session_semaphore.release()
 
     @brick.execute
