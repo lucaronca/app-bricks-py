@@ -176,7 +176,8 @@ class AudioStreamRouter:
 
 @brick
 class AutomaticSpeechRecognition:
-    app_service_name = "audio-analytics-runner"
+    _APP_SERVICE_NAME = "audio-analytics-runner"
+    _FLUSH_INTERVAL_SECONDS = 5
 
     def __init__(self, language: str = "en"):
         """ASR implementation that uses a local audio analytics service to decode audio streams.
@@ -186,7 +187,7 @@ class AutomaticSpeechRecognition:
 
         """
         self.max_concurrent_transcriptions = 3
-        self.api_host = resolve_address(self.app_service_name)
+        self.api_host = resolve_address(self._APP_SERVICE_NAME)
         if not self.api_host:
             raise RuntimeError("Host address could not be resolved. Please check your configuration.")
 
@@ -227,13 +228,30 @@ class AutomaticSpeechRecognition:
             cancelled_event.set()
             logger.debug(f"Cancelled session {session_id}")
 
+    def _flush_transcription_session(self, session_id: str) -> None:
+        logger.debug(f"Flushing transcription session {session_id}")
+        url = f"{self.api_base_url}/transcriptions/flush"
+        payload = {"session_id": session_id}
+
+        try:
+            response = requests.post(url, json=payload, timeout=5)
+        except Exception as e:
+            logger.warning(f"Failed to flush session {session_id}: {e}")
+            return
+
+        if response.status_code != 200:
+            logger.warning(f"Failed to flush session {session_id}: flush returned status {response.status_code}: {response.text}")
+            return
+
+        logger.debug(f"Session {session_id} flushed successfully")
+
     def _close_transcription_session(self, session_id: str) -> None:
         logger.debug(f"Closing transcription session {session_id}")
         url = f"{self.api_base_url}/transcriptions/close"
         payload = {"session_id": session_id}
 
         try:
-            response = requests.post(url, json=payload, timeout=5)
+            response = requests.post(url, json=payload, timeout=15)
         except Exception as e:
             raise RuntimeError(f"Failed to close session {session_id}: {e}") from e
 
@@ -349,7 +367,7 @@ class AutomaticSpeechRecognition:
                 ]),
             }
 
-            response = requests.post(url=create_url, json=create_data, timeout=3)
+            response = requests.post(url=create_url, json=create_data, timeout=5)
 
             if response.status_code != 200:
                 error_msg = f"Failed to create transcription session: {response.status_code}"
@@ -471,6 +489,33 @@ class AutomaticSpeechRecognition:
         if msg.get("state") != "connection_established":
             raise RuntimeError(f"{label} expected connection_established, got {msg}")
 
+    async def _periodic_flush(self, session_info: MicSessionInfo | WAVSessionInfo) -> None:
+        """Periodically flush the transcription session to force partial results.
+
+        If the session has a finite duration and the remaining time until it ends
+        is less than ``_FLUSH_INTERVAL_SECONDS``, the flush is skipped because the
+        session will close shortly anyway.
+        """
+        session_id = session_info.session_id
+        has_duration = isinstance(session_info, MicSessionInfo) and session_info.duration > 0
+        try:
+            while not self._stop_worker.is_set() and not session_info.cancelled.is_set():
+                await asyncio.sleep(self._FLUSH_INTERVAL_SECONDS)
+                if self._stop_worker.is_set() or session_info.cancelled.is_set():
+                    break
+                await asyncio.to_thread(self._flush_transcription_session, session_id)
+                if has_duration:
+                    remaining = session_info.duration - (time.time() - session_info.start_time)
+                    if remaining < self._FLUSH_INTERVAL_SECONDS:
+                        logger.debug(
+                            f"No more flushes for session {session_id}: "
+                            f"only {remaining:.1f}s remaining (< {self._FLUSH_INTERVAL_SECONDS}s)"
+                        )
+                        break
+        except asyncio.CancelledError:
+            logger.debug(f"Periodic flush cancelled for session {session_id}")
+            raise
+
     async def _transcription_session_handler(self, session_info: MicSessionInfo | WAVSessionInfo):
         """
         One transcription session uses two WebSocket connections:
@@ -508,6 +553,8 @@ class AutomaticSpeechRecognition:
                 )
             )
 
+            flush_task = asyncio.create_task(self._periodic_flush(session_info))
+
             try:
                 while not self._stop_worker.is_set() and not session_info.cancelled.is_set():
                     done, _ = await asyncio.wait(
@@ -527,12 +574,12 @@ class AutomaticSpeechRecognition:
                     break
 
             finally:
-                close_error = None
+                if flush_task and not flush_task.done():
+                    flush_task.cancel()
+                await asyncio.gather(flush_task, return_exceptions=True)
 
-                try:
-                    await asyncio.to_thread(self._close_transcription_session, session_id)
-                except Exception as e:
-                    close_error = e
+                # Close the session first, then disconnect WebSockets (server protocol requirement)
+                await asyncio.to_thread(self._close_transcription_session, session_id)
 
                 session_info.cancelled.set()
 
@@ -541,9 +588,6 @@ class AutomaticSpeechRecognition:
                         task.cancel()
 
                 await asyncio.gather(send_task, receive_task, return_exceptions=True)
-
-                if close_error is not None:
-                    raise close_error
 
     async def _send_pcm_stream(
         self,
