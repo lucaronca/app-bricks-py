@@ -201,8 +201,6 @@ class AutomaticSpeechRecognition:
         self._stop_worker = threading.Event()
         self._audio_stream_router = AudioStreamRouter()
         self._session_semaphore = threading.Semaphore(self.max_concurrent_transcriptions)
-        self._active_session_ids = set()
-        self._active_sessions_lock = threading.Lock()
 
     def start(self):
         """Prepare the ASR for transcription."""
@@ -212,15 +210,6 @@ class AutomaticSpeechRecognition:
         """Stop the ASR and clean up resources."""
         logger.debug("Stopping ASR and cleaning up resources...")
         self._stop_worker.set()
-
-        with self._active_sessions_lock:
-            active_ids = list(self._active_session_ids)
-
-        for session_id in active_ids:
-            try:
-                self._close_transcription_session(session_id)
-            except Exception as e:
-                logger.warning(f"Failed to close session {session_id} during stop: {e}")
 
     def _close_transcription_session(self, session_id: str) -> None:
         logger.debug(f"Closing transcription session {session_id}")
@@ -236,8 +225,6 @@ class AutomaticSpeechRecognition:
             raise RuntimeError(f"Failed to close session {session_id}: close returned status {response.status_code}: {response.text}")
 
         logger.debug(f"Session {session_id} closed successfully")
-        with self._active_sessions_lock:
-            self._active_session_ids.discard(session_id)
 
     def transcribe_mic(self, mic: BaseMicrophone, duration: int = 0) -> str:
         """
@@ -388,9 +375,6 @@ class AutomaticSpeechRecognition:
                 )
             else:
                 raise RuntimeError("audio_source must be either a BaseMicrophone or bytes")
-
-            with self._active_sessions_lock:
-                self._active_session_ids.add(session_id)
 
             future = asyncio.run_coroutine_threadsafe(
                 self._transcription_session_handler(session_info),
