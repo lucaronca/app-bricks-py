@@ -511,10 +511,7 @@ class AutomaticSpeechRecognition:
                 if has_duration:
                     remaining = session_info.duration - (time.time() - session_info.start_time)
                     if remaining < self._FLUSH_INTERVAL_SECONDS:
-                        logger.debug(
-                            f"No more flushes for session {session_id}: "
-                            f"only {remaining:.1f}s remaining (< {self._FLUSH_INTERVAL_SECONDS}s)"
-                        )
+                        logger.debug(f"No more flushes for session {session_id}: only {remaining:.1f}s remaining (< {self._FLUSH_INTERVAL_SECONDS}s)")
                         break
         except asyncio.CancelledError:
             logger.debug(f"Periodic flush cancelled for session {session_id}")
