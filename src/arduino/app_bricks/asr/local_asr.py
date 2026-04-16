@@ -199,6 +199,7 @@ class AutomaticSpeechRecognition:
         self.language = language
 
         self._worker_loop = None
+        self._worker_ready = threading.Event()
         self._stop_worker = threading.Event()
         self._audio_stream_router = AudioStreamRouter()
         self._session_semaphore = threading.Semaphore(self.max_concurrent_transcriptions)
@@ -327,7 +328,7 @@ class AutomaticSpeechRecognition:
         duration: int = 0,
         audio_source: BaseMicrophone | bytes | None = None,
     ) -> Generator[ASREvent, None, None]:
-        if self._worker_loop is None:
+        if not self._worker_ready.wait(timeout=5):
             raise RuntimeError("Worker loop not initialized. Call start() first.")
 
         if self._stop_worker.is_set():
@@ -465,6 +466,7 @@ class AutomaticSpeechRecognition:
         logger.debug("Asyncio event loop starting")
         self._worker_loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self._worker_loop)
+        self._worker_ready.set()
 
         async def keep_alive():
             while not self._stop_worker.is_set():
@@ -480,6 +482,7 @@ class AutomaticSpeechRecognition:
                 task.cancel()
             if pending:
                 self._worker_loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+            self._worker_ready.clear()
             self._worker_loop.close()
             self._worker_loop = None
             logger.debug("Asyncio event loop stopped")
