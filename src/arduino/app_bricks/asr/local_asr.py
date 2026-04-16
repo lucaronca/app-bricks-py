@@ -179,7 +179,7 @@ class AutomaticSpeechRecognition:
     _APP_SERVICE_NAME = "audio-analytics-runner"
     _FLUSH_INTERVAL_SECONDS = 5
 
-    def __init__(self, language: str = "en"):
+    def __init__(self, language: str | None = None):
         """ASR implementation that uses a local audio analytics service to decode audio streams.
 
         Arguments:
@@ -359,7 +359,6 @@ class AutomaticSpeechRecognition:
             create_data = {
                 "model": self.model,
                 "stream": True,
-                "language": self.language,
                 "parameters": json.dumps([
                     {"key": "sampling_rate", "value": sampling_rate},
                     {"key": "channels", "value": channels},
@@ -367,6 +366,8 @@ class AutomaticSpeechRecognition:
                     {"key": "vad", "value": _DEFAULT_VAD},
                 ]),
             }
+            if self.language is not None:
+                create_data["language"] = self.language
 
             response = requests.post(url=create_url, json=create_data, timeout=5)
 
