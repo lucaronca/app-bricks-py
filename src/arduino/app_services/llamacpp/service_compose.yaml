@@ -1,13 +1,15 @@
 services:
   llamacpp-models-runner:
     image: ${DOCKER_REGISTRY_BASE:-ghcr.io/arduino/}app-bricks/llamacpp-npu-runner:0.11.0rc1
+    # DEBUG: run the usual entrypoint but strip --log-disable so llama-server logs are visible
+    entrypoint: ["bash", "-lc", "sed 's/ --log-disable//' /run-model-router.sh > /tmp/run.sh && exec bash /tmp/run.sh"]
     logging:
       driver: "json-file"
       options:
         max-size: "5m"
         max-file: "2"
     environment:
-      - LLAMA_LOG_LEVEL=error
+      - LLAMA_LOG_LEVEL=debug
       - LLAMA_ARG_HOST=0.0.0.0
       - LLAMA_ARG_PORT=9999
       - LLAMA_ARG_POLL=1000
