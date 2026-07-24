@@ -1,0 +1,26 @@
+services:
+  hermes-gateway:
+    # TODO(hackathon): build this image from ./docker and push it (see docker/Dockerfile)
+    image: ghcr.io/arduino/app-bricks/hermes-gateway:0.1.0
+    # The image is root-based (FHS install, data in /root/.hermes); without this
+    # the CLI runs brick containers as a non-root uid (same reason genie uses it).
+    user: "0:0"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+    # No web UI documented upstream (README 2026-07-24): channels are messaging
+    # platforms + CLI. Chat via `docker exec -it <app>-hermes-gateway-1 hermes`.
+    # TODO(hackathon): re-add a port mapping here if a webchat channel exists.
+    # ports:
+    #   - "${BIND_ADDRESS:-127.0.0.1}:7180:7180"
+    volumes:
+      # Persistent agent state (memory, sessions, pairing, skills) survives
+      # app stop/restart. Lives under the app directory like dbstorage data.
+      - "${APP_HOME:-.}/data/hermes-state:/root/.hermes"
+    environment:
+      # Served by the HermesAgent brick shim inside the app main container.
+      HERMES_BOOTSTRAP_URL: "http://main:7181/bootstrap"
+      TELEGRAM_BOT_TOKEN: "${TELEGRAM_BOT_TOKEN:-}"
+      API_KEY: "${API_KEY:-}"

@@ -1,0 +1,24 @@
+id: arduino:hermes_agent
+name: Hermes Agent
+description: "Runs the Hermes agent (Nous Research) on the board: your app registers Python functions as agent skills, and the agent uses them while chatting through its web UI or messaging platforms. Ships preconfigured to use an on-board llamacpp model, or a cloud provider (openai:*, anthropic:*, google:*) when configured with a cloud model."
+category: ai
+requires_services:
+  - id: arduino:llamacpp
+    when:
+      model: "llamacpp:*"
+model_by_boards:
+  - platform: ventunoq
+    model: llamacpp:gemma-4-E4B_q4_0-it
+supported_boards: ["ventunoq"]
+ai_frameworks_compatibility:
+  - llamacpp
+variables:
+  # default_value makes a variable optional (the CLI hard-requires it otherwise).
+  - name: TELEGRAM_BOT_TOKEN
+    description: Optional Telegram bot token; when unset the agent is reachable through the CLI channel only
+    secret: true
+    default_value: ""
+  - name: API_KEY
+    description: API key for the cloud LLM provider, required only when a cloud model (openai:*, anthropic:*, google:*) is configured
+    secret: true
+    default_value: ""
